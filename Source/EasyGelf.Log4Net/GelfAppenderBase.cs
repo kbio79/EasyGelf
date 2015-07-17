@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using EasyGelf.Core;
 using EasyGelf.Core.Transports;
 using log4net.Appender;
@@ -6,10 +7,11 @@ using log4net.Core;
 
 namespace EasyGelf.Log4Net
 {
-    public abstract class GelfAppenderBase  : AppenderSkeleton
+    public abstract class GelfAppenderBase : AppenderSkeleton
     {
         private ITransport transport;
         private IEasyGelfLogger logger;
+        private Dictionary<string, string> customParams;
 
         public string Facility { get; set; }
 
@@ -27,6 +29,8 @@ namespace EasyGelf.Log4Net
 
         public bool Verbose { get; set; }
 
+        public string AdditionalFields { get; set; }
+
         protected GelfAppenderBase()
         {
             Facility = "gelf";
@@ -37,6 +41,7 @@ namespace EasyGelf.Log4Net
             RetryCount = 5;
             RetryDelay = TimeSpan.FromMilliseconds(50);
             IncludeStackTrace = true;
+            AdditionalFields = null;            
         }
 
         public override void ActivateOptions()
@@ -47,6 +52,10 @@ namespace EasyGelf.Log4Net
                 logger = Verbose ? (IEasyGelfLogger)new VerboseLogger() : new SilentLogger();
                 var mainTransport = InitializeTransport(logger);
                 transport = new BufferedTransport(logger, UseRetry ? new RetryingTransport(logger, mainTransport, RetryCount, RetryDelay) : mainTransport);
+                customParams = new Dictionary<string, string>();
+
+                if (!string.IsNullOrEmpty(AdditionalFields))
+                    ParseAdditionalFields(AdditionalFields);                
             }
             catch (Exception exception)
             {
@@ -66,10 +75,23 @@ namespace EasyGelf.Log4Net
             try
             {
                 var renderedEvent = RenderLoggingEvent(loggingEvent);
-                var messageBuilder = new GelfMessageBuilder(renderedEvent, HostName, loggingEvent.TimeStamp, loggingEvent.Level.ToGelf())
-                    .SetAdditionalField(GelfAdditionalFields.Facility, Facility)
-                    .SetAdditionalField(GelfAdditionalFields.LoggerName, loggingEvent.LoggerName)
+                var messageBuilder = new GelfMessageBuilder(renderedEvent, HostName, loggingEvent.TimeStamp, loggingEvent.Level.ToGelf());
+
+                messageBuilder.SetAdditionalField(GelfAdditionalFields.Facility, Facility);                
+
+                if (customParams != null && customParams.Count > 0)
+                {
+                    foreach (var item in customParams)
+                    {
+                        messageBuilder.SetAdditionalField(item.Key, item.Value);
+                    }
+                }
+                else
+                {
+                    messageBuilder.SetAdditionalField(GelfAdditionalFields.LoggerName, loggingEvent.LoggerName)
                     .SetAdditionalField(GelfAdditionalFields.ThreadName, loggingEvent.ThreadName);
+                }
+
                 if (IncludeSource)
                 {
                     var locationInformation = loggingEvent.LocationInformation;
@@ -105,6 +127,22 @@ namespace EasyGelf.Log4Net
                 return;
             transport.Close();
             transport = null;
+        }
+
+        private void ParseAdditionalFields(string additionalParams)
+        {
+            //Gelf4Net additional fields format definition
+            //app:RandomSentence,version:1.0,Level:%level
+
+            string[] parsedParams = additionalParams.Split(',');
+
+            foreach (var customField in parsedParams)
+            {
+                string[] param = customField.Split(':');
+
+                if (param.Length == 2)
+                    customParams.Add(param[0], param[1]);
+            }
         }
     }
 }

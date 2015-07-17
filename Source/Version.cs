@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-[assembly: AssemblyVersion("0.0.0.0")]
+[assembly: AssemblyVersion("0.4.5.0")]
 [assembly: CLSCompliant(true)]
 
 

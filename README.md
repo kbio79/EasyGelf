@@ -4,59 +4,33 @@ Goals: to support up to date version of Gelf and provide reliable integration wi
 
 Now log4net and NLog are supported. Also Udp, Tcp and Amqp protocols are supported.
 
+##Changes
+Added support for custom Additional Fields as Gelf4Net definition "app:applicationName,version:1.0.2,environment:TEST"
+Changed "version" field for "message_version"
+Configure EasyGelf by code example added
+
 ## Usage(log4net)
 
-###Minimal configuration:
+###Configure by Code
 
-``` 
-<?xml version="1.0" encoding="utf-8"?>
-<log4net>
-  <appender name="GelfUdpAppender" type=" EasyGelf.Log4Net.GelfUdpAppender, EasyGelf.Log4Net">
-    <remoteAddress value="127.0.0.1" />
-    <remotePort value="12201" />
-    <facility value="Easy Gelf Example Application" />
-    <layout type="log4net.Layout.PatternLayout">
-      <conversionPattern value="%message%newline" />
-    </layout>
-  </appender>
-  <appender name="GelfAmqpAppender" type=" EasyGelf.Log4Net.GelfAmqpAppender, EasyGelf.Log4Net">
-    <connectionUri value="amqp://" />
-    <facility value="Easy Gelf Example Application" />
-    <layout type="log4net.Layout.PatternLayout">
-      <conversionPattern value="%message%newline" />
-    </layout>
-  </appender>
-  <root>
-    <level value="ALL" />
-    <appender-ref ref="GelfUdpAppender" />
-    <appender-ref ref="GelfAmqpAppender" />
-  </root>
-</log4net>
+Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+
+PatternLayout patternLayout = new PatternLayout();
+patternLayout.ConversionPattern = "%date [%thread] %-5level %logger [%.30location| Method = %method] - %message%newline";
+patternLayout.ActivateOptions();
+
+GelfTcpAppender remoteAppender = new GelfTcpAppender();
+remoteAppender.Layout = patternLayout;
+remoteAppender.AdditionalFields = string.Format("app:applicationName,version:{0},environment:{1}","1.0.2","TEST");
+remoteAppender.Facility = "Facility";
+remoteAppender.RemoteAddress = "put your log server address here";
+remoteAppender.RemotePort = 12201;
+remoteAppender.ActivateOptions();            
+hierarchy.Root.AddAppender(remoteAppender);
+
+hierarchy.Root.Level = log4net.Core.Level.All;
+hierarchy.Configured = true;
 ```                                
-
-## Usage(NLog)
-
-###Minimal configuration:
-
-```
-<?xml version="1.0" encoding="utf-8" ?>
-<nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <extensions>
-    <add assembly="EasyGelf.NLog"/>
-  </extensions>
-  <targets>
-    <target name="GelfUdp" xsi:type="GelfUdp" facility="Easy Gelf Example Application" remoteAddress="127.0.0.1" remotePort="12201" layout="${message}"/>
-    <target name="GelfAmqp" xsi:type="GelfAmqp" facility="Easy Gelf Example Application" connectionUri="amqp://" layout="${message}"/>
-  </targets>
-  <rules>
-    <logger name="*" minlevel="Info" writeTo="GelfUdp" />
-    <logger name="*" minlevel="Info" writeTo="GelfAmqp" />
-  </rules>
-</nlog>
-
-```
-
 
 
 ##Additional configuration
