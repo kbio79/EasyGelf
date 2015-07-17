@@ -5,9 +5,9 @@ Goals: to support up to date version of Gelf and provide reliable integration wi
 Now log4net and NLog are supported. Also Udp, Tcp and Amqp protocols are supported.
 
 ##Branch Changes
-* `Added support for custom Additional Fields as Gelf4Net definition "app:applicationName,version:1.0.2,environment:TEST"
-* `Changed "version" field for "message_version"
-* `Configure EasyGelf by code example added
+* Added support for custom Additional Fields as Gelf4Net definition "app:applicationName,version:1.0.2,environment:TEST"
+* Changed "version" field for "message_version"
+* Configure EasyGelf by code example added
 
 ## Usage(log4net)
 
